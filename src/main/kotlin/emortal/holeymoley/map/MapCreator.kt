@@ -4,20 +4,24 @@ import net.minestom.server.instance.Instance
 import net.minestom.server.instance.batch.AbsoluteBlockBatch
 import net.minestom.server.instance.batch.RelativeBlockBatch
 import net.minestom.server.instance.block.Block
+import net.minestom.server.tag.Tag
 import world.cepi.kstom.Manager
 import java.time.Duration
 
 object MapCreator {
 
-    val mapSize = 20
     val possibleBlocks = listOf(Block.DIRT, Block.COARSE_DIRT, Block.DIRT, Block.COARSE_DIRT, Block.GRAVEL)
+
+    val mapSizeTag = Tag.Integer("mapSize")
 
     fun init() {
 
     }
 
-    fun create(): Instance {
+    fun create(mapSize: Int): Instance {
         val instance = Manager.instance.createInstanceContainer()
+
+        instance.setTag(mapSizeTag, mapSize)
 
         instance.loadChunk(0, 0)
         instance.loadChunk(0, 1)

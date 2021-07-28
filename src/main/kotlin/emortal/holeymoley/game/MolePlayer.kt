@@ -10,6 +10,7 @@ val Player.mole: MolePlayer
 class MolePlayer(val player: Player) {
 
     companion object {
+        val lastHeightOnGroundTag = Tag.Double("lastHeightOnGround")
         val killsTag = Tag.Integer("kills")
         val deadTag = Tag.Byte("dead")
         val canBeHitTag = Tag.Byte("canBeHit")
@@ -37,10 +38,15 @@ class MolePlayer(val player: Player) {
         get() = player.getTag(canBeHitTag)!!.toInt() == 1
         set(value) = player.setTag(canBeHitTag, if (value) 1 else 0)
 
+    var lastHeightOnGround: Double
+        get() = player.getTag(lastHeightOnGroundTag)!!
+        set(value) = player.setTag(lastHeightOnGroundTag, value)
+
     init {
         player.setTag(killsTag, 0)
         player.setTag(deadTag, 0)
         player.setTag(canBeHitTag, 1)
+        player.setTag(lastHeightOnGroundTag, player.position.y())
     }
 
 }
