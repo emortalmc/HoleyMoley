@@ -49,7 +49,7 @@ object SphereUtil {
                 continue
             }
 
-            if (MapCreator.possibleBlocks.contains(block)) {
+            if (block == Block.DIRT) {
                 batch.setBlock(blockPos, rainbowBlocks.random())
 
             }

@@ -36,6 +36,7 @@ class HoleyMoleyExtension : Extension() {
                 eventNode,
                 "holeymoley",
                 mini.parse("<gradient:gold:yellow><bold>HoleyMoley"),
+                true,
                 GameOptions(
                     { MapCreator.create(50) },
                     15,

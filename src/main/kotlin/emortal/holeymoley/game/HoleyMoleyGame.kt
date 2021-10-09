@@ -12,6 +12,7 @@ import emortal.holeymoley.util.collidingEntities
 import emortal.immortal.game.Game
 import emortal.immortal.game.GameOptions
 import emortal.immortal.game.GameState
+import emortal.immortal.game.PvpGame
 import emortal.immortal.util.takeKnockback
 import net.kyori.adventure.sound.Sound
 import net.kyori.adventure.text.Component
@@ -43,6 +44,7 @@ import net.minestom.server.potion.PotionEffect
 import net.minestom.server.sound.SoundEvent
 import net.minestom.server.timer.Task
 import world.cepi.kstom.Manager
+import world.cepi.kstom.Manager.block
 import world.cepi.kstom.adventure.sendMiniMessage
 import world.cepi.kstom.event.listenOnly
 import world.cepi.kstom.util.eyePosition
@@ -51,7 +53,7 @@ import java.time.Duration
 import java.util.concurrent.ThreadLocalRandom
 import kotlin.math.*
 
-class HoleyMoleyGame(gameOptions: GameOptions) : Game(gameOptions) {
+class HoleyMoleyGame(gameOptions: GameOptions) : Game(gameOptions), PvpGame {
 
     var eventLoopTask: Task? = null
 
@@ -131,14 +133,15 @@ class HoleyMoleyGame(gameOptions: GameOptions) : Game(gameOptions) {
         player.teleport(lastPos)
     }
 
-    override fun playerDied(player: Player, killer: Entity?, deathMessage: () -> Component) {
+    override fun playerDied(player: Player, killer: Entity?) {
         if (gameState == GameState.ENDING) return
 
         val killerPlayer = killer as Player
 
         player.mole.dead = true
 
-        playerAudience.sendMessage(deathMessage.invoke())
+        //TODO: this
+        //playerAudience.sendMessage(deathMessage.invoke())
 
         player.inventory.clear()
         player.heal()
@@ -162,7 +165,7 @@ class HoleyMoleyGame(gameOptions: GameOptions) : Game(gameOptions) {
 
         // TODO: Chests
 
-        childEventNode.listenOnly<EntityTickEvent> {
+        eventNode.listenOnly<EntityTickEvent> {
             if (entity.entityType == EntityType.SNOWBALL) {
                 // Check for snowball collision with block
                 val collidingEntities = entity.collidingEntities(instance.players)
@@ -231,7 +234,7 @@ class HoleyMoleyGame(gameOptions: GameOptions) : Game(gameOptions) {
             }
         }
 
-        childEventNode.listenOnly<PlayerUseItemEvent> {
+        eventNode.listenOnly<PlayerUseItemEvent> {
             if (itemStack.material == Material.SNOWBALL) {
                 val entity = Entity(EntityType.SNOWBALL)
 
@@ -253,7 +256,7 @@ class HoleyMoleyGame(gameOptions: GameOptions) : Game(gameOptions) {
             }
         }
 
-        childEventNode.listenOnly<EntityDamageEvent> {
+        eventNode.listenOnly<EntityDamageEvent> {
             if (entity !is Player) return@listenOnly
 
             val player = entity as Player
@@ -270,8 +273,8 @@ class HoleyMoleyGame(gameOptions: GameOptions) : Game(gameOptions) {
         }
 
         // Handles instant block breaking
-        childEventNode.listenOnly<PlayerStartDiggingEvent> {
-            if (player.inventory.itemInMainHand.material == Shovel.createItemStack().material && MapCreator.possibleBlocks.contains(block) && player.isOnGround) {
+        eventNode.listenOnly<PlayerStartDiggingEvent> {
+            if (player.inventory.itemInMainHand.material == Shovel.createItemStack().material && block == Block.DIRT && player.isOnGround) {
                 instance.breakBlock(player, blockPosition)
 
                 // Plays block break sound for other players
@@ -283,7 +286,7 @@ class HoleyMoleyGame(gameOptions: GameOptions) : Game(gameOptions) {
             }
         }
 
-        childEventNode.listenOnly<PlayerBlockInteractEvent> {
+        eventNode.listenOnly<PlayerBlockInteractEvent> {
             if (block.compare(Block.CHEST)) {
                 val inventory = (block.handler() as SingleChestHandler).inventory
                 player.openInventory(inventory)
@@ -291,11 +294,11 @@ class HoleyMoleyGame(gameOptions: GameOptions) : Game(gameOptions) {
             }
         }
 
-        childEventNode.listenOnly<PlayerBlockPlaceEvent> {
+        eventNode.listenOnly<PlayerBlockPlaceEvent> {
             blocksPlacedByPlayer.add(blockPosition)
         }
 
-        childEventNode.listenOnly<PlayerBlockBreakEvent> {
+        eventNode.listenOnly<PlayerBlockBreakEvent> {
             if (block == Block.BEDROCK) {
                 isCancelled = true
                 return@listenOnly
@@ -325,7 +328,7 @@ class HoleyMoleyGame(gameOptions: GameOptions) : Game(gameOptions) {
             }
         }
 
-        childEventNode.listenOnly<EntityAttackEvent> {
+        eventNode.listenOnly<EntityAttackEvent> {
             if (target !is Player || entity !is Player) return@listenOnly
 
             val attacker = entity as Player
