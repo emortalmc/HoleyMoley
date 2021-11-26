@@ -1,27 +1,24 @@
 package emortal.holeymoley.command
 
+import dev.emortal.immortal.game.GameManager.game
 import emortal.holeymoley.event.Event
 import emortal.holeymoley.game.HoleyMoleyGame
-import emortal.immortal.game.GameManager.game
-import net.minestom.server.command.builder.Command
 import net.minestom.server.command.builder.arguments.ArgumentType
-import world.cepi.kstom.command.addSyntax
+import world.cepi.kstom.command.arguments.suggest
+import world.cepi.kstom.command.kommand.Kommand
 
-object doEvent : Command("doevent") {
-
-    init {
-        val eventArg = ArgumentType.StringArray("event")
-
-        addSyntax(eventArg) {
-            val event = Event.eventList.firstOrNull { it.name == this.context.get(eventArg).joinToString(" ") }
-            if (event == null) {
-                sender.asPlayer().sendMessage("invalid event")
-                return@addSyntax
-            }
-
-            event.performEvent(sender.asPlayer().game!! as HoleyMoleyGame)
-        }
-
+object doEvent : Kommand({
+    val eventArg = ArgumentType.StringArray("event").suggest {
+        Event.eventList.map { it.name }
     }
 
-}
+    syntax(eventArg) {
+        val event = Event.eventList.firstOrNull { it.name == context.get(eventArg).joinToString(" ") }
+        if (event == null) {
+            player.sendMessage("invalid event")
+            return@syntax
+        }
+
+        event.performEvent(sender.asPlayer().game!! as HoleyMoleyGame)
+    }
+}, "doevent")

@@ -1,24 +1,20 @@
 package emortal.holeymoley.game
 
+import dev.emortal.immortal.game.GameOptions
+import dev.emortal.immortal.game.GameState
+import dev.emortal.immortal.game.PvpGame
+import dev.emortal.immortal.util.takeKnockback
 import emortal.holeymoley.blocks.SingleChestHandler
 import emortal.holeymoley.event.Event
 import emortal.holeymoley.item.*
 import emortal.holeymoley.item.Item.Companion.getItem
 import emortal.holeymoley.item.Item.Companion.heldItem
-import emortal.holeymoley.item.ItemUtil.addRandomly
-import emortal.holeymoley.item.ItemUtil.count
 import emortal.holeymoley.map.MapCreator
 import emortal.holeymoley.util.collidingEntities
-import emortal.immortal.game.Game
-import emortal.immortal.game.GameOptions
-import emortal.immortal.game.GameState
-import emortal.immortal.game.PvpGame
-import emortal.immortal.util.takeKnockback
 import net.kyori.adventure.sound.Sound
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
 import net.kyori.adventure.text.format.TextDecoration
-import net.kyori.adventure.text.minimessage.MiniMessage
 import net.kyori.adventure.title.Title
 import net.minestom.server.attribute.Attribute
 import net.minestom.server.coordinate.Point
@@ -35,6 +31,7 @@ import net.minestom.server.event.entity.EntityAttackEvent
 import net.minestom.server.event.entity.EntityDamageEvent
 import net.minestom.server.event.entity.EntityTickEvent
 import net.minestom.server.event.player.*
+import net.minestom.server.instance.Instance
 import net.minestom.server.instance.block.Block
 import net.minestom.server.inventory.Inventory
 import net.minestom.server.item.ItemStack
@@ -44,7 +41,7 @@ import net.minestom.server.potion.PotionEffect
 import net.minestom.server.sound.SoundEvent
 import net.minestom.server.timer.Task
 import world.cepi.kstom.Manager
-import world.cepi.kstom.Manager.block
+import world.cepi.kstom.adventure.asMini
 import world.cepi.kstom.adventure.sendMiniMessage
 import world.cepi.kstom.event.listenOnly
 import world.cepi.kstom.util.eyePosition
@@ -53,7 +50,7 @@ import java.time.Duration
 import java.util.concurrent.ThreadLocalRandom
 import kotlin.math.*
 
-class HoleyMoleyGame(gameOptions: GameOptions) : Game(gameOptions), PvpGame {
+class HoleyMoleyGame(gameOptions: GameOptions) : PvpGame(gameOptions) {
 
     var eventLoopTask: Task? = null
 
@@ -62,40 +59,36 @@ class HoleyMoleyGame(gameOptions: GameOptions) : Game(gameOptions), PvpGame {
 
     val blocksPlacedByPlayer = mutableListOf<Point>()
 
-    val mini = MiniMessage.get()
-
     override fun playerJoin(player: Player) {
-        player.setInstance(instance)
     }
 
     override fun playerLeave(player: Player) {
         MolePlayer.removeFrom(player)
     }
 
-    override fun start() {
+    override fun gameStarted() {
 
         eventLoopTask = Manager.scheduler.buildTask {
-            println("event")
             val randomEvent = Event.eventList.random()
             randomEvent.performEvent(this)
 
 
-            playerAudience.showTitle(
+            showTitle(
                 Title.title(
-                    mini.parse("<rainbow><bold>${randomEvent.name}"),
+                    "<rainbow><bold>${randomEvent.name}".asMini(),
                     Component.empty(),
                     Title.Times.of(Duration.ZERO, Duration.ofSeconds(3), Duration.ofSeconds(1))
                 )
             )
 
-            playerAudience.sendMiniMessage(" <gold>★</gold> <dark_gray>|</dark_gray> <gray>New event! <rainbow>${randomEvent.name}")
+            sendMiniMessage(" <gold>★</gold> <dark_gray>|</dark_gray> <gray>New event! <rainbow>${randomEvent.name}")
 
         }.repeat(Duration.ofSeconds(30)).delay(Duration.ofSeconds(30)).schedule()
 
         players.forEach { respawn(it) }
     }
 
-    override fun postDestroy() {
+    override fun gameDestroyed() {
 
         eventLoopTask?.cancel()
 
@@ -174,11 +167,13 @@ class HoleyMoleyGame(gameOptions: GameOptions) : Game(gameOptions), PvpGame {
                         if (it !is Player) return@listenOnly
                         if (!it.mole.canBeHit) return@listenOnly
 
-                        it.velocity = it.velocity.add(Vec(
-                            (-sin(entity.position.yaw() * Math.PI / 180.0f) * 0.4f),
-                            20.0,
-                            (cos(entity.position.yaw() * Math.PI / 180.0f) * 0.4f)
-                        ))
+                        it.velocity = it.velocity.add(
+                            Vec(
+                                (-sin(entity.position.yaw() * Math.PI / 180.0f) * 0.4f),
+                                20.0,
+                                (cos(entity.position.yaw() * Math.PI / 180.0f) * 0.4f)
+                            )
+                        )
 
                         it.damage(DamageType.fromProjectile(null, entity), 0f)
                     }
@@ -190,7 +185,10 @@ class HoleyMoleyGame(gameOptions: GameOptions) : Game(gameOptions), PvpGame {
                 }
             }
             if (entity.entityType == EntityType.POTION) {
-                if (entity.velocity.x() == 0.0 || entity.velocity.y() == 0.0 || entity.velocity.z() == 0.0 || entity.isOnGround || !entity.instance!!.getBlock(entity.position).compare(Block.AIR)) {
+                if (entity.velocity.x() == 0.0 || entity.velocity.y() == 0.0 || entity.velocity.z() == 0.0 || entity.isOnGround || !entity.instance!!.getBlock(
+                        entity.position
+                    ).compare(Block.AIR)
+                ) {
 
                     val collidingEntities = entity.boundingBox.expand(6.0, 6.0, 6.0).collidingEntities(instance.players)
 
@@ -204,7 +202,14 @@ class HoleyMoleyGame(gameOptions: GameOptions) : Game(gameOptions), PvpGame {
                         item.potionEffects.forEach { potionEffect -> collideEntity.addEffect(potionEffect) }
 
                     }
-                    entity.instance!!.playSound(Sound.sound(SoundEvent.ENTITY_SPLASH_POTION_BREAK, Sound.Source.AMBIENT, 1f, 0.8f), entity.position)
+                    entity.instance!!.playSound(
+                        Sound.sound(
+                            SoundEvent.ENTITY_SPLASH_POTION_BREAK,
+                            Sound.Source.AMBIENT,
+                            1f,
+                            0.8f
+                        ), entity.position
+                    )
                     entity.remove()
                 }
             }
@@ -238,7 +243,14 @@ class HoleyMoleyGame(gameOptions: GameOptions) : Game(gameOptions), PvpGame {
             if (itemStack.material == Material.SNOWBALL) {
                 val entity = Entity(EntityType.SNOWBALL)
 
-                player.instance!!.playSound(Sound.sound(SoundEvent.ENTITY_SNOWBALL_THROW, Sound.Source.AMBIENT, 1f, 0.8f), player.position)
+                player.instance!!.playSound(
+                    Sound.sound(
+                        SoundEvent.ENTITY_SNOWBALL_THROW,
+                        Sound.Source.AMBIENT,
+                        1f,
+                        0.8f
+                    ), player.position
+                )
                 entity.velocity = player.position.direction().normalize().mul(40.0)
                 entity.setInstance(player.instance!!, player.eyePosition())
 
@@ -250,7 +262,14 @@ class HoleyMoleyGame(gameOptions: GameOptions) : Game(gameOptions), PvpGame {
                 thrownPotionMeta.item = itemStack
                 player.itemInMainHand.consume(1)
 
-                player.instance!!.playSound(Sound.sound(SoundEvent.ENTITY_SPLASH_POTION_THROW, Sound.Source.AMBIENT, 1f, 0.8f), player.position)
+                player.instance!!.playSound(
+                    Sound.sound(
+                        SoundEvent.ENTITY_SPLASH_POTION_THROW,
+                        Sound.Source.AMBIENT,
+                        1f,
+                        0.8f
+                    ), player.position
+                )
                 potion.velocity = player.position.direction().normalize().mul(10.0)
                 potion.setInstance(player.instance!!, player.eyePosition())
             }
@@ -281,7 +300,10 @@ class HoleyMoleyGame(gameOptions: GameOptions) : Game(gameOptions), PvpGame {
                 instance.players
                     .filter { it != player }
                     .forEach {
-                        it.playSound(Sound.sound(SoundEvent.BLOCK_GRAVEL_BREAK, Sound.Source.BLOCK, 1f, 0.8f), blockPosition)
+                        it.playSound(
+                            Sound.sound(SoundEvent.BLOCK_GRAVEL_BREAK, Sound.Source.BLOCK, 1f, 0.8f),
+                            blockPosition
+                        )
                     }
             }
         }
@@ -306,14 +328,20 @@ class HoleyMoleyGame(gameOptions: GameOptions) : Game(gameOptions), PvpGame {
             if (block.compare(Block.CHEST)) return@listenOnly
 
             if (player.inventory.count(Material.DIRT) < 64) {
-                player.playSound(Sound.sound(SoundEvent.ENTITY_ITEM_PICKUP, Sound.Source.PLAYER, 0.25f, 1f), player.position)
+                player.playSound(
+                    Sound.sound(SoundEvent.ENTITY_ITEM_PICKUP, Sound.Source.PLAYER, 0.25f, 1f),
+                    player.position
+                )
                 player.inventory.addItemStack(ItemStack.of(Material.DIRT))
             }
 
             if (!blocksPlacedByPlayer.contains(blockPosition)) {
-                if (ThreadLocalRandom.current().nextDouble() < 0.001) {
-                    player.sendMessage(mini.parse(" <gold>★</gold> <dark_gray>|</dark_gray> <gray>You uncovered a <light_purple>CHEST</light_purple>!"))
-                    player.playSound(Sound.sound(SoundEvent.ENTITY_PLAYER_LEVELUP, Sound.Source.PLAYER, 1f, 1f), blockPosition)
+                if (ThreadLocalRandom.current().nextDouble() < 0.005) {
+                    player.sendMiniMessage(" <gold>★</gold> <dark_gray>|</dark_gray> <gray>You uncovered a <light_purple>CHEST</light_purple>!")
+                    player.playSound(
+                        Sound.sound(SoundEvent.ENTITY_PLAYER_LEVELUP, Sound.Source.PLAYER, 1f, 1f),
+                        blockPosition
+                    )
 
                     val singleChest = SingleChestHandler.create()
                     val handler = singleChest.handler() as SingleChestHandler
@@ -344,7 +372,10 @@ class HoleyMoleyGame(gameOptions: GameOptions) : Game(gameOptions), PvpGame {
             val defence = victim.getAttribute(Attribute.ARMOR).baseValue
             val toughness = victim.getAttribute(Attribute.ARMOR_TOUGHNESS).baseValue
 
-            var damage = (attacker.heldItem?.damage ?: 0.5f) * (1 - (min(20f, max(defence / 5f, defence - (((attacker.heldItem?.damage ?: 0.5f)*4)/(toughness + 8))))/25))
+            var damage = (attacker.heldItem?.damage ?: 0.5f) * (1 - (min(
+                20f,
+                max(defence / 5f, defence - (((attacker.heldItem?.damage ?: 0.5f) * 4) / (toughness + 8)))
+            ) / 25))
             if (!attacker.isOnGround) damage *= 1.5f
 
             println("damage $damage")
@@ -355,12 +386,16 @@ class HoleyMoleyGame(gameOptions: GameOptions) : Game(gameOptions), PvpGame {
 
     fun addRandomChestItems(inventory: Inventory) {
         val alreadyHadItems = mutableSetOf<Item>()
-        for (i in 0..15) {
+        for (i in 0..7) {
             val newItem = Item.random()
             if (alreadyHadItems.contains(newItem)) continue
             alreadyHadItems.add(newItem)
             inventory.addRandomly(newItem.createItemStack())
         }
+    }
+
+    override fun instanceCreate(): Instance {
+        return MapCreator.create(50)
     }
 
 }

@@ -36,10 +36,8 @@ dependencies {
     // Use the Kotlin reflect library.
     compileOnly(kotlin("reflect"))
 
-    compileOnly("com.github.Minestom:Minestom:f640351777")
-    compileOnly("com.github.Project-Cepi:KStom:bc4f809e6d")
-    compileOnly("com.github.EmortalMC:Immortal:60acb7b8eb")
-    compileOnly("net.kyori:adventure-text-minimessage:4.1.0-SNAPSHOT")
+    compileOnly("com.github.Minestom:Minestom:0bcfc39a9d")
+    compileOnly("com.github.EmortalMC:Immortal:a226a09091")
 
     // import kotlinx serialization
     compileOnly("org.jetbrains.kotlinx:kotlinx-serialization-json:1.2.2")
@@ -78,10 +76,10 @@ tasks {
 }
 
 java {
-    sourceCompatibility = JavaVersion.VERSION_16
-    targetCompatibility = JavaVersion.VERSION_16
+    toolchain {
+        languageVersion.set(JavaLanguageVersion.of(17))
+    }
 }
-
 
 val compileKotlin: KotlinCompile by tasks
 compileKotlin.kotlinOptions.jvmTarget = JavaVersion.VERSION_16.toString()
