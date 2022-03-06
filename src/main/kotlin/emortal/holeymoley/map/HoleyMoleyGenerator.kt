@@ -30,7 +30,5 @@ class HoleyMoleyGenerator(private val mapSize: Int) : ChunkGenerator {
         }
     }
 
-    override fun fillBiomes(biomes: Array<out Biome>, chunkX: Int, chunkZ: Int) = Arrays.fill(biomes, Biome.PLAINS)
-
     override fun getPopulators(): MutableList<ChunkPopulator>? = null
 }

@@ -54,7 +54,6 @@ class HoleyMoleyGame(gameOptions: GameOptions) : PvpGame(gameOptions) {
 
     var eventLoopTask: Task? = null
 
-    val maxChests = 0.01 * (instance.getTag(MapCreator.mapSizeTag)!!).toDouble().pow(3)
     var uncoveredChests = mutableListOf<Block>()
 
     val blocksPlacedByPlayer = mutableListOf<Point>()

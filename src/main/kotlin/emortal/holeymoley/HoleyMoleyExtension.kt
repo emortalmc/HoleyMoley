@@ -27,6 +27,7 @@ class HoleyMoleyExtension : Extension() {
             "holeymoley",
             "<gradient:gold:yellow><bold>HoleyMoley".asMini(),
             true,
+            true,
             WhenToRegisterEvents.GAME_START,
             GameOptions(
                 maxPlayers = 15,

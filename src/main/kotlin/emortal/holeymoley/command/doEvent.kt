@@ -8,6 +8,9 @@ import world.cepi.kstom.command.arguments.suggest
 import world.cepi.kstom.command.kommand.Kommand
 
 object doEvent : Kommand({
+
+    onlyPlayers
+
     val eventArg = ArgumentType.StringArray("event").suggest {
         Event.eventList.map { it.name }
     }
@@ -19,6 +22,6 @@ object doEvent : Kommand({
             return@syntax
         }
 
-        event.performEvent(sender.asPlayer().game!! as HoleyMoleyGame)
+        event.performEvent(player.game!! as HoleyMoleyGame)
     }
 }, "doevent")
