@@ -40,7 +40,7 @@ dependencies {
     compileOnly("com.github.EmortalMC:Immortal:81dfdace2b")
 
     // import kotlinx serialization
-    compileOnly("org.jetbrains.kotlinx:kotlinx-serialization-json:1.3.2")
+    compileOnly("org.jetbrains.kotlinx:kotlinx-serialization-json:1.3.3")
 }
 tasks.withType<Test> {
     useJUnitPlatform()
