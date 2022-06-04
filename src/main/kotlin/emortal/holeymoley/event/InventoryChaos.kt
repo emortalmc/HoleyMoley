@@ -1,12 +1,12 @@
 package emortal.holeymoley.event
 
 import emortal.holeymoley.game.HoleyMoleyGame
-import emortal.holeymoley.game.mole
+import net.minestom.server.entity.GameMode
 
 object InventoryChaos : Event("Inventory Chaos") {
     override fun performEvent(game: HoleyMoleyGame) {
         game.players
-            .filter { !it.mole.dead }
+            .filter { it.gameMode == GameMode.SURVIVAL }
             .forEach { player ->
                 val newItemList = player.inventory.itemStacks.clone()
                 newItemList.shuffle()

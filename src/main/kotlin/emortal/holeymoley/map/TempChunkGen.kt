@@ -5,25 +5,29 @@ import net.minestom.server.instance.ChunkGenerator
 import net.minestom.server.instance.ChunkPopulator
 import net.minestom.server.instance.batch.ChunkBatch
 import net.minestom.server.instance.block.Block
-import net.minestom.server.world.biomes.Biome
-import java.util.*
+import kotlin.math.ceil
 
-class HoleyMoleyGenerator(private val mapSize: Int) : ChunkGenerator {
+class TempChunkGen(private val mapSize: Int) : ChunkGenerator {
+
+    val ceiledChunks = ceil(mapSize.toDouble() / 16.0).toInt()
 
     override fun generateChunkData(batch: ChunkBatch, chunkX: Int, chunkZ: Int) {
+        if (0 > chunkX || 0 > chunkZ || chunkX > ceiledChunks || chunkZ > ceiledChunks) return
+
         for (xInChunk in 0 until Chunk.CHUNK_SIZE_X) {
             for (y in 0..mapSize) {
                 for (zInChunk in 0 until Chunk.CHUNK_SIZE_Z) {
 
                     val x = (chunkX * 16) + xInChunk
                     val z = (chunkZ * 16) + zInChunk
+                    if (x > mapSize || z > mapSize) continue
 
                     if ((x == 0 || x == mapSize) || (y == 0 || y == mapSize) || (z == 0 || z == mapSize)) {
-                        batch.setBlock(x, y, z, Block.BEDROCK)
+                        batch.setBlock(xInChunk, y, zInChunk, Block.BEDROCK)
                         continue
                     }
 
-                    batch.setBlock(x, y, z, Block.DIRT)
+                    batch.setBlock(xInChunk, y, zInChunk, Block.DIRT)
 
                 }
             }

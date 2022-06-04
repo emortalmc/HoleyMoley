@@ -1,17 +1,13 @@
 package emortal.holeymoley.item
 
-import net.kyori.adventure.text.format.TextDecoration
 import net.minestom.server.entity.Player
 import net.minestom.server.item.ItemStack
-import net.minestom.server.item.ItemStackBuilder
 import net.minestom.server.item.Material
 import net.minestom.server.tag.Tag
 import world.cepi.kstom.adventure.noItalic
-import world.cepi.kstom.item.item
-import world.cepi.kstom.item.withMeta
 import java.util.concurrent.ThreadLocalRandom
 
-sealed class Item(val id: String, val material: Material, val rarity: Rarity, val itemCreate: (ItemStackBuilder) -> Unit = { }) {
+sealed class Item(val id: String, val material: Material, val rarity: Rarity, val itemCreate: (ItemStack.Builder) -> Unit = { }) {
 
     companion object {
 
@@ -49,8 +45,8 @@ sealed class Item(val id: String, val material: Material, val rarity: Rarity, va
 
     fun createItemStack(): ItemStack {
         return ItemStack.builder(material)
-            .withMeta {
-                setTag(itemIdTag, id)
+            .meta {
+                it.setTag(itemIdTag, id)
             }
             .lore(rarity.component.noItalic())
             .also { itemCreate.invoke(it) }

@@ -10,8 +10,8 @@ import java.util.concurrent.ThreadLocalRandom
 fun PlayerInventory.count(material: Material): Int {
     var count = 0
     itemStacks.forEach {
-        if (it.material == material) {
-            count += it.amount
+        if (it.material() == material) {
+            count += it.amount()
         }
     }
     return count
@@ -32,5 +32,5 @@ fun Inventory.addRandomly(itemStack: ItemStack) {
 }
 
 val Item.damage: Float
-    get() = damage + (0.5f + ((createItemStack().meta.enchantmentMap[Enchantment.SHARPNESS]
+    get() = damage + (0.5f + ((createItemStack().meta().enchantmentMap[Enchantment.SHARPNESS]
         ?: -0.5f).toFloat() * 0.5f)) * 2
