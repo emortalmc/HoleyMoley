@@ -30,7 +30,3 @@ fun Inventory.addRandomly(itemStack: ItemStack) {
         }
     }
 }
-
-val Item.damage: Float
-    get() = damage + (0.5f + ((createItemStack().meta().enchantmentMap[Enchantment.SHARPNESS]
-        ?: -0.5f).toFloat() * 0.5f)) * 2

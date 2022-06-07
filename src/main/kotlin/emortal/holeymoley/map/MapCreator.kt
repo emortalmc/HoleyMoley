@@ -13,9 +13,9 @@ object MapCreator {
         val instance = Manager.instance.createInstanceContainer()
 
         instance.setTag(mapSizeTag, mapSize)
-        instance.explosionSupplier = PvpExplosionSupplier.INSTANCE
 
         instance.setChunkGenerator(TempChunkGen(mapSize))
+        instance.explosionSupplier = PvpExplosionSupplier.INSTANCE
 
         return instance
     }

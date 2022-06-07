@@ -16,7 +16,8 @@ import io.github.bloepiloepi.pvp.events.EntityPreDeathEvent
 import io.github.bloepiloepi.pvp.events.FinalAttackEvent
 import io.github.bloepiloepi.pvp.events.FinalDamageEvent
 import io.github.bloepiloepi.pvp.events.PlayerExhaustEvent
-import io.github.bloepiloepi.pvp.explosion.TntEntity
+import io.github.bloepiloepi.pvp.explosion.ExplosionListener
+import io.github.bloepiloepi.pvp.explosion.PvpExplosionSupplier
 import net.kyori.adventure.sound.Sound
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
@@ -27,7 +28,6 @@ import net.minestom.server.coordinate.Pos
 import net.minestom.server.entity.Entity
 import net.minestom.server.entity.GameMode
 import net.minestom.server.entity.Player
-import net.minestom.server.entity.metadata.other.PrimedTntMeta
 import net.minestom.server.event.player.PlayerBlockBreakEvent
 import net.minestom.server.event.player.PlayerBlockInteractEvent
 import net.minestom.server.event.player.PlayerBlockPlaceEvent
@@ -35,20 +35,67 @@ import net.minestom.server.event.player.PlayerStartDiggingEvent
 import net.minestom.server.instance.Instance
 import net.minestom.server.instance.block.Block
 import net.minestom.server.inventory.Inventory
+import net.minestom.server.item.Enchantment
 import net.minestom.server.item.ItemStack
 import net.minestom.server.item.Material
+import net.minestom.server.item.metadata.PotionMeta
 import net.minestom.server.potion.Potion
 import net.minestom.server.potion.PotionEffect
+import net.minestom.server.potion.PotionType
 import net.minestom.server.scoreboard.Sidebar
 import net.minestom.server.sound.SoundEvent
 import world.cepi.kstom.adventure.asMini
 import world.cepi.kstom.event.listenOnly
+import world.cepi.kstom.item.withMeta
 import world.cepi.kstom.util.playSound
 import java.time.Duration
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ThreadLocalRandom
 
 class HoleyMoleyGame(gameOptions: GameOptions) : PvpGame(gameOptions) {
+
+    companion object {
+        val items = listOf(
+//            Item(Material.LEATHER_HELMET, Rarity.IMPOSSIBLE),
+//            Item(Material.LEATHER_CHESTPLATE, Rarity.IMPOSSIBLE),
+//            Item(Material.LEATHER_LEGGINGS, Rarity.IMPOSSIBLE),
+//            Item(Material.LEATHER_BOOTS, Rarity.IMPOSSIBLE),
+//            Item(Material.WOODEN_SWORD, Rarity.IMPOSSIBLE),
+//            Item(Material.STONE_SHOVEL, Rarity.IMPOSSIBLE) { it.meta { it.enchantment(Enchantment.EFFICIENCY, 5) } },
+
+            Item(Material.TNT, Rarity.RARE) { it.amount(ThreadLocalRandom.current().nextInt(1, 3)) },
+
+            Item(Material.STONE_SWORD, Rarity.UNCOMMON),
+            Item(Material.IRON_SWORD, Rarity.RARE),
+
+            Item(Material.CHAINMAIL_BOOTS, Rarity.RARE),
+            Item(Material.COBWEB, Rarity.COMMON) { it.amount(ThreadLocalRandom.current().nextInt(2, 6)) },
+            //Item(Material.FIRE_CHARGE, Rarity.COMMON) { it.amount(ThreadLocalRandom.current().nextInt(1, 3)) },
+            Item(Material.IRON_CHESTPLATE, Rarity.RARE),
+
+            Item(Material.SHIELD, Rarity.RARE),
+            Item(Material.SPLASH_POTION, Rarity.EPIC) { it.meta(PotionMeta::class.java) { it.potionType(PotionType.REGENERATION) } },
+
+            Item(Material.SNOWBALL, Rarity.COMMON) { it.amount(ThreadLocalRandom.current().nextInt(1, 17)) },
+            Item(Material.COOKED_BEEF, Rarity.UNCOMMON) { it.amount(ThreadLocalRandom.current().nextInt(2, 3)) }
+        )
+
+        fun randomItem(): Item {
+            val possibleItems = items.filter { it.rarity != Rarity.IMPOSSIBLE }
+            val totalWeight = possibleItems.sumOf { it.rarity.weight }
+
+            var idx = 0
+
+            var r = ThreadLocalRandom.current().nextInt(totalWeight)
+            while (idx < possibleItems.size - 1) {
+                r -= possibleItems[idx].rarity.weight
+                if (r <= 0.0) break
+                ++idx
+            }
+
+            return possibleItems[idx]
+        }
+    }
 
     override var spawnPosition = Pos(0.5, 60.0, 0.5)
 
@@ -186,14 +233,11 @@ class HoleyMoleyGame(gameOptions: GameOptions) : PvpGame(gameOptions) {
 
     override fun respawn(player: Player) {
         player.addEffect(Potion(PotionEffect.NIGHT_VISION, 0, 32767))
-        player.inventory.setItemStack(1, Shovel.createItemStack())
-        player.inventory.setItemStack(0, WoodenSword.createItemStack())
-        //player.inventory.helmet = LeatherHelmet.createItemStack()
-        player.inventory.chestplate = LeatherChestplate.createItemStack()
-        //player.inventory.leggings = LeatherLeggings.createItemStack()
-        //player.inventory.boots = LeatherBoots.createItemStack()
-        //player.inventory.addItemStack(RegenPotion.createItemStack())
+
+        player.inventory.setItemStack(1, ItemStack.builder(Material.STONE_SHOVEL).meta { it.enchantment(Enchantment.EFFICIENCY, 5) }.build())
+        player.inventory.setItemStack(0, ItemStack.of(Material.WOODEN_SWORD))
         player.inventory.setItemStack(3, ItemStack.of(Material.TNT))
+        player.inventory.chestplate = ItemStack.of(Material.LEATHER_CHESTPLATE)
 
         player.canBeHit = true
 
@@ -289,23 +333,14 @@ class HoleyMoleyGame(gameOptions: GameOptions) : PvpGame(gameOptions) {
             this.amount = amount / 1.5f
         }
 
-        eventNode.listenOnly<PlayerBlockPlaceEvent> {
-            if (this.block == Block.REDSTONE_BLOCK) {
-                val tntEntity = TntEntity(player)
-                val tntMeta = tntEntity.entityMeta as PrimedTntMeta
-                tntMeta.fuseTime = 20
-                consumeBlock(true)
-                isCancelled = true
-            }
-        }
-
         eventNode.listenOnly<EntityPreDeathEvent> {
             if (entity !is Player) return@listenOnly
 
             val player = entity as Player
             this.isCancelled = true
 
-            kill(player, (damageType as CustomEntityDamage).entity)
+            if (damageType is CustomEntityDamage) kill(player, (damageType as CustomEntityDamage).entity)
+            else kill(player)
 
         }
 
@@ -315,7 +350,7 @@ class HoleyMoleyGame(gameOptions: GameOptions) : PvpGame(gameOptions) {
 
         ) + SphereUtil.rainbowBlocks
         eventNode.listenOnly<PlayerStartDiggingEvent> {
-            if (player.inventory.itemInMainHand.material() == Shovel.createItemStack().material() && breakableBlocks.contains(block) && player.isOnGround) {
+            if (player.inventory.itemInMainHand.material() == Material.STONE_SHOVEL && breakableBlocks.contains(block) && player.isOnGround) {
                 instance.breakBlock(player, blockPosition)
 
                 // Plays block break sound for other players
@@ -340,6 +375,14 @@ class HoleyMoleyGame(gameOptions: GameOptions) : PvpGame(gameOptions) {
         }
 
         eventNode.listenOnly<PlayerBlockPlaceEvent> {
+            if (block.compare(Block.TNT)) {
+
+                isCancelled = true
+                ExplosionListener.primeTnt(instance, blockPosition, player, 50)
+                player.itemInMainHand = if (player.itemInMainHand.amount() == 1) ItemStack.AIR else  player.itemInMainHand.withAmount(player.itemInMainHand.amount() - 1)
+
+                return@listenOnly
+            }
             blocksPlacedByPlayer.add(blockPosition)
         }
 
@@ -391,7 +434,7 @@ class HoleyMoleyGame(gameOptions: GameOptions) : PvpGame(gameOptions) {
     fun addRandomChestItems(inventory: Inventory) {
         val alreadyHadItems = mutableSetOf<Item>()
         for (i in 0..7) {
-            val newItem = Item.random()
+            val newItem = randomItem()
             if (alreadyHadItems.contains(newItem)) continue
             alreadyHadItems.add(newItem)
 

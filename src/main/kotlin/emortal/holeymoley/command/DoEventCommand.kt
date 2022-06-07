@@ -7,7 +7,7 @@ import net.minestom.server.command.builder.arguments.ArgumentType
 import world.cepi.kstom.command.arguments.suggest
 import world.cepi.kstom.command.kommand.Kommand
 
-object doEvent : Kommand({
+object DoEventCommand : Kommand({
 
     onlyPlayers
 
