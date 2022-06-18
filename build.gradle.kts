@@ -14,7 +14,7 @@ repositories {
 
 dependencies {
     compileOnly("com.github.Minestom:Minestom:58b6e90142")
-    compileOnly("com.github.EmortalMC:Immortal:e9c693da83")
+    compileOnly("com.github.EmortalMC:Immortal:2.0.0")
     implementation("com.github.Bloepiloepi:MinestomPvP:a859478774")
 
     compileOnly("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.1")
