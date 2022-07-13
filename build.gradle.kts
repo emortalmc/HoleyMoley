@@ -17,7 +17,7 @@ dependencies {
     compileOnly("com.github.EmortalMC:Immortal:e9c693da83")
     implementation("com.github.Bloepiloepi:MinestomPvP:a859478774")
 
-    compileOnly("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.1")
+    compileOnly("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.4")
 }
 
 tasks {
