@@ -1,23 +1,23 @@
 package emortal.holeymoley.game
 
-import dev.emortal.immortal.config.GameOptions
 import dev.emortal.immortal.game.GameState
 import dev.emortal.immortal.game.PvpGame
 import dev.emortal.immortal.util.MinestomRunnable
 import dev.emortal.immortal.util.reset
 import emortal.holeymoley.blocks.SingleChestHandler
 import emortal.holeymoley.event.Event
-import emortal.holeymoley.item.*
+import emortal.holeymoley.item.Item
+import emortal.holeymoley.item.Item.Companion.randomItem
+import emortal.holeymoley.item.addRandomly
+import emortal.holeymoley.item.count
 import emortal.holeymoley.map.MapCreator
 import emortal.holeymoley.util.SphereUtil
+import io.github.bloepiloepi.pvp.PvpExtension
 import io.github.bloepiloepi.pvp.damage.CustomDamageType
 import io.github.bloepiloepi.pvp.damage.CustomEntityDamage
-import io.github.bloepiloepi.pvp.events.EntityPreDeathEvent
-import io.github.bloepiloepi.pvp.events.FinalAttackEvent
-import io.github.bloepiloepi.pvp.events.FinalDamageEvent
-import io.github.bloepiloepi.pvp.events.PlayerExhaustEvent
+import io.github.bloepiloepi.pvp.events.*
 import io.github.bloepiloepi.pvp.explosion.ExplosionListener
-import io.github.bloepiloepi.pvp.explosion.PvpExplosionSupplier
+import io.github.bloepiloepi.pvp.explosion.TntEntity
 import net.kyori.adventure.sound.Sound
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
@@ -25,86 +25,67 @@ import net.kyori.adventure.text.format.TextDecoration
 import net.kyori.adventure.title.Title
 import net.minestom.server.coordinate.Point
 import net.minestom.server.coordinate.Pos
+import net.minestom.server.coordinate.Vec
 import net.minestom.server.entity.Entity
 import net.minestom.server.entity.GameMode
+import net.minestom.server.entity.ItemEntity
 import net.minestom.server.entity.Player
+import net.minestom.server.event.EventNode
 import net.minestom.server.event.player.PlayerBlockBreakEvent
 import net.minestom.server.event.player.PlayerBlockInteractEvent
 import net.minestom.server.event.player.PlayerBlockPlaceEvent
 import net.minestom.server.event.player.PlayerStartDiggingEvent
+import net.minestom.server.event.trait.InstanceEvent
 import net.minestom.server.instance.Instance
 import net.minestom.server.instance.block.Block
 import net.minestom.server.inventory.Inventory
 import net.minestom.server.item.Enchantment
 import net.minestom.server.item.ItemStack
 import net.minestom.server.item.Material
-import net.minestom.server.item.metadata.PotionMeta
 import net.minestom.server.potion.Potion
 import net.minestom.server.potion.PotionEffect
-import net.minestom.server.potion.PotionType
 import net.minestom.server.scoreboard.Sidebar
 import net.minestom.server.sound.SoundEvent
+import net.minestom.server.utils.time.TimeUnit
 import world.cepi.kstom.adventure.asMini
 import world.cepi.kstom.event.listenOnly
-import world.cepi.kstom.item.withMeta
 import world.cepi.kstom.util.playSound
 import java.time.Duration
+import java.util.concurrent.CompletableFuture
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ThreadLocalRandom
+import kotlin.math.PI
+import kotlin.math.cos
+import kotlin.math.sin
 
-class HoleyMoleyGame(gameOptions: GameOptions) : PvpGame(gameOptions) {
+class HoleyMoleyGame : PvpGame() {
+
+    override val maxPlayers: Int = 15
+    override val minPlayers: Int = 2
+    override val countdownSeconds: Int = 15
+    override val canJoinDuringGame: Boolean = false
+    override val showScoreboard: Boolean = false
+    override val showsJoinLeaveMessages: Boolean = true
+    override val allowsSpectators: Boolean = false
 
     companion object {
-        val items = listOf(
-//            Item(Material.LEATHER_HELMET, Rarity.IMPOSSIBLE),
-//            Item(Material.LEATHER_CHESTPLATE, Rarity.IMPOSSIBLE),
-//            Item(Material.LEATHER_LEGGINGS, Rarity.IMPOSSIBLE),
-//            Item(Material.LEATHER_BOOTS, Rarity.IMPOSSIBLE),
-//            Item(Material.WOODEN_SWORD, Rarity.IMPOSSIBLE),
-//            Item(Material.STONE_SHOVEL, Rarity.IMPOSSIBLE) { it.meta { it.enchantment(Enchantment.EFFICIENCY, 5) } },
 
-            Item(Material.TNT, Rarity.RARE) { it.amount(ThreadLocalRandom.current().nextInt(1, 3)) },
-
-            Item(Material.STONE_SWORD, Rarity.UNCOMMON),
-            Item(Material.IRON_SWORD, Rarity.RARE),
-
-            Item(Material.CHAINMAIL_BOOTS, Rarity.RARE),
-            Item(Material.COBWEB, Rarity.COMMON) { it.amount(ThreadLocalRandom.current().nextInt(2, 6)) },
-            //Item(Material.FIRE_CHARGE, Rarity.COMMON) { it.amount(ThreadLocalRandom.current().nextInt(1, 3)) },
-            Item(Material.IRON_CHESTPLATE, Rarity.RARE),
-
-            Item(Material.SHIELD, Rarity.RARE),
-            Item(Material.SPLASH_POTION, Rarity.EPIC) { it.meta(PotionMeta::class.java) { it.potionType(PotionType.REGENERATION) } },
-
-            Item(Material.SNOWBALL, Rarity.COMMON) { it.amount(ThreadLocalRandom.current().nextInt(1, 17)) },
-            Item(Material.COOKED_BEEF, Rarity.UNCOMMON) { it.amount(ThreadLocalRandom.current().nextInt(2, 3)) }
-        )
-
-        fun randomItem(): Item {
-            val possibleItems = items.filter { it.rarity != Rarity.IMPOSSIBLE }
-            val totalWeight = possibleItems.sumOf { it.rarity.weight }
-
-            var idx = 0
-
-            var r = ThreadLocalRandom.current().nextInt(totalWeight)
-            while (idx < possibleItems.size - 1) {
-                r -= possibleItems[idx].rarity.weight
-                if (r <= 0.0) break
-                ++idx
-            }
-
-            return possibleItems[idx]
-        }
+        var spawnPosition = Pos(0.5, 60.0, 0.5)
     }
 
-    override var spawnPosition = Pos(0.5, 60.0, 0.5)
-
+    override fun getSpawnPosition(player: Player, spectator: Boolean): Pos = spawnPosition
 
     var uncoveredChests: MutableSet<Block> = ConcurrentHashMap.newKeySet()
-
     val blocksPlacedByPlayer: MutableSet<Point> = ConcurrentHashMap.newKeySet()
 
-    init {
+    // events
+    var shovelBreakRadius = 1
+    var minesweeper = false
+
+
+    override fun gameCreated() {
+        val eventNode = instance!!.eventNode()
+
         eventNode.listenOnly<FinalDamageEvent> {
             if (damageType == CustomDamageType.FALL && gameState != GameState.PLAYING) isCancelled = true
         }
@@ -136,11 +117,11 @@ class HoleyMoleyGame(gameOptions: GameOptions) : PvpGame(gameOptions) {
         scoreboard?.removeLine("infoLine")
 
         // Regular glow runnable
-        object : MinestomRunnable(coroutineScope = coroutineScope, delay = Duration.ofSeconds(13), repeat = Duration.ofSeconds(40)) {
-            override suspend fun run() {
+        object : MinestomRunnable(delay = Duration.ofSeconds(13), repeat = Duration.ofSeconds(40), group = runnableGroup) {
+            override fun run() {
 
-                object : MinestomRunnable(coroutineScope = coroutineScope, delay = Duration.ofSeconds(4), repeat = Duration.ofSeconds(1), iterations = 3) {
-                    override suspend fun run() {
+                object : MinestomRunnable(delay = Duration.ofSeconds(4), repeat = Duration.ofSeconds(1), iterations = 3, group = runnableGroup) {
+                    override fun run() {
                         val currentIter = currentIteration.get()
 
                         sendMessage(
@@ -173,8 +154,8 @@ class HoleyMoleyGame(gameOptions: GameOptions) : PvpGame(gameOptions) {
 
                         playSound(Sound.sound(SoundEvent.BLOCK_ANVIL_LAND, Sound.Source.MASTER, 0.7f, 1f))
 
-                        object : MinestomRunnable(coroutineScope = coroutineScope, delay = Duration.ofSeconds(4)) {
-                            override suspend fun run() {
+                        object : MinestomRunnable(delay = Duration.ofSeconds(5), group = runnableGroup) {
+                            override fun run() {
                                 players.filter { it.gameMode == GameMode.SURVIVAL }.forEach {
                                     it.isGlowing = false
                                 }
@@ -196,8 +177,8 @@ class HoleyMoleyGame(gameOptions: GameOptions) : PvpGame(gameOptions) {
         }
 
         // Random event runnable
-        object : MinestomRunnable(coroutineScope = coroutineScope, delay = Duration.ofSeconds(30), repeat = Duration.ofSeconds(42)) {
-            override suspend fun run() {
+        object : MinestomRunnable(delay = Duration.ofSeconds(30), repeat = Duration.ofSeconds(42), group = runnableGroup) {
+            override fun run() {
                 val randomEvent = Event.eventList.random()
                 randomEvent.performEvent(this@HoleyMoleyGame)
 
@@ -224,19 +205,21 @@ class HoleyMoleyGame(gameOptions: GameOptions) : PvpGame(gameOptions) {
         players.forEach { respawn(it) }
     }
 
-    override fun gameDestroyed() {
+    override fun gameEnded() {
 
         players.forEach {
+            it.stopSpectating()
             it.cleanup()
         }
     }
 
     override fun respawn(player: Player) {
+        player.reset()
         player.addEffect(Potion(PotionEffect.NIGHT_VISION, 0, 32767))
 
         player.inventory.setItemStack(1, ItemStack.builder(Material.STONE_SHOVEL).meta { it.enchantment(Enchantment.EFFICIENCY, 5) }.build())
         player.inventory.setItemStack(0, ItemStack.of(Material.WOODEN_SWORD))
-        player.inventory.setItemStack(3, ItemStack.of(Material.TNT))
+        player.inventory.itemInOffHand = ItemStack.of(Material.SHIELD)
         player.inventory.chestplate = ItemStack.of(Material.LEATHER_CHESTPLATE)
 
         player.canBeHit = true
@@ -247,25 +230,23 @@ class HoleyMoleyGame(gameOptions: GameOptions) : PvpGame(gameOptions) {
         var lastPos = Pos.ZERO
         val random = ThreadLocalRandom.current()
         while (!isValid) {
-            val x = random.nextInt(1, instance.getTag(MapCreator.mapSizeTag)!! - 1)
-            val y = random.nextInt(2, instance.getTag(MapCreator.mapSizeTag)!! - 3)
-            val z = random.nextInt(1, instance.getTag(MapCreator.mapSizeTag)!! - 1)
+            val x = random.nextInt(1, instance!!.getTag(MapCreator.mapSizeTag)!! - 1)
+            val y = random.nextInt(2, instance!!.getTag(MapCreator.mapSizeTag)!! - 3)
+            val z = random.nextInt(1, instance!!.getTag(MapCreator.mapSizeTag)!! - 1)
 
             lastPos = Pos(x.toDouble(), y.toDouble(), z.toDouble())
 
             isValid = true
         }
 
-        instance.setBlock(lastPos, Block.AIR)
-        instance.setBlock(lastPos.add(0.0, 1.0, 0.0), Block.AIR)
+        instance!!.setBlock(lastPos, Block.AIR)
+        instance!!.setBlock(lastPos.add(0.0, 1.0, 0.0), Block.AIR)
         player.teleport(lastPos.add(0.5, 0.0, 0.5))
     }
 
     override fun playerDied(player: Player, killer: Entity?) {
         if (gameState == GameState.ENDING) return
 
-        player.inventory.clear()
-        player.heal()
         player.reset()
         player.gameMode = GameMode.SPECTATOR
 
@@ -312,6 +293,21 @@ class HoleyMoleyGame(gameOptions: GameOptions) : PvpGame(gameOptions) {
 
         player.addEffect(Potion(PotionEffect.NIGHT_VISION, 2, Short.MAX_VALUE.toInt()))
 
+        val rand = ThreadLocalRandom.current()
+        player.inventory.itemStacks.forEach {
+            val angle = rand.nextDouble(PI * 2)
+            val strength = rand.nextDouble(3.0, 6.0)
+            val x = cos(angle) * strength
+            val z = sin(angle) * strength
+
+            val itemEntity = ItemEntity(it)
+            itemEntity.setPickupDelay(500, TimeUnit.MILLISECOND)
+            itemEntity.velocity = Vec(x, rand.nextDouble(3.0, 7.0), z)
+            itemEntity.setInstance(player.instance!!, player.position.add(0.0, 1.5, 0.0))
+        }
+
+        player.inventory.clear()
+
         val alivePlayers = players.filter { it.gameMode == GameMode.SURVIVAL }
 
         scoreboard?.updateLineContent(
@@ -327,7 +323,14 @@ class HoleyMoleyGame(gameOptions: GameOptions) : PvpGame(gameOptions) {
         }
     }
 
-    override fun registerEvents() {
+    override fun registerEvents(eventNode: EventNode<InstanceEvent>) {
+
+        eventNode.addChild(PvpExtension.events())
+
+        eventNode.listenOnly<PlayerSpectateEvent> {
+            isCancelled = true
+        }
+
 
         eventNode.listenOnly<PlayerExhaustEvent> {
             this.amount = amount / 1.5f
@@ -351,7 +354,19 @@ class HoleyMoleyGame(gameOptions: GameOptions) : PvpGame(gameOptions) {
         ) + SphereUtil.rainbowBlocks
         eventNode.listenOnly<PlayerStartDiggingEvent> {
             if (player.inventory.itemInMainHand.material() == Material.STONE_SHOVEL && breakableBlocks.contains(block) && player.isOnGround) {
-                instance.breakBlock(player, blockPosition)
+                if (shovelBreakRadius == 1) {
+                    instance.breakBlock(player, blockPosition)
+                } else {
+                    for (x in -1..1) {
+                        for (y in -1..1) {
+                            for (z in -1..1) {
+                                val pos = blockPosition.add(x.toDouble(), y.toDouble(), z.toDouble())
+                                if (instance.getBlock(pos).compare(Block.CHEST)) continue
+                                instance.breakBlock(player, pos)
+                            }
+                        }
+                    }
+                }
 
                 // Plays block break sound for other players
                 instance.players
@@ -401,6 +416,14 @@ class HoleyMoleyGame(gameOptions: GameOptions) : PvpGame(gameOptions) {
                 player.inventory.addItemStack(ItemStack.of(Material.DIRT))
             }
 
+            // replace some blocks broken with TNT
+            if (minesweeper) {
+                if (ThreadLocalRandom.current().nextDouble() < 0.1) {
+                    val tnt = TntEntity(null)
+                    tnt.setInstance(instance, blockPosition.add(0.5, 0.0, 0.5))
+                }
+            }
+
             if (!blocksPlacedByPlayer.contains(blockPosition)) {
                 if (ThreadLocalRandom.current().nextDouble() < 0.005) {
                     player.sendMessage(
@@ -442,8 +465,8 @@ class HoleyMoleyGame(gameOptions: GameOptions) : PvpGame(gameOptions) {
         }
     }
 
-    override fun instanceCreate(): Instance {
-        return MapCreator.create(45)
+    override fun instanceCreate(): CompletableFuture<Instance> {
+        return CompletableFuture.completedFuture(MapCreator.create(52))
     }
 
 }

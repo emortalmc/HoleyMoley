@@ -2,7 +2,6 @@ package emortal.holeymoley.item
 
 import net.minestom.server.inventory.Inventory
 import net.minestom.server.inventory.PlayerInventory
-import net.minestom.server.item.Enchantment
 import net.minestom.server.item.ItemStack
 import net.minestom.server.item.Material
 import java.util.concurrent.ThreadLocalRandom
