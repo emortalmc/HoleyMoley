@@ -13,7 +13,6 @@ import emortal.holeymoley.item.count
 import emortal.holeymoley.map.MapCreator
 import emortal.holeymoley.util.SphereUtil
 import io.github.bloepiloepi.pvp.PvpExtension
-import io.github.bloepiloepi.pvp.damage.CustomDamageType
 import io.github.bloepiloepi.pvp.damage.CustomEntityDamage
 import io.github.bloepiloepi.pvp.events.*
 import io.github.bloepiloepi.pvp.explosion.ExplosionListener
@@ -31,6 +30,8 @@ import net.minestom.server.entity.GameMode
 import net.minestom.server.entity.ItemEntity
 import net.minestom.server.entity.Player
 import net.minestom.server.event.EventNode
+import net.minestom.server.event.item.ItemDropEvent
+import net.minestom.server.event.item.PickupItemEvent
 import net.minestom.server.event.player.PlayerBlockBreakEvent
 import net.minestom.server.event.player.PlayerBlockInteractEvent
 import net.minestom.server.event.player.PlayerBlockPlaceEvent
@@ -70,7 +71,7 @@ class HoleyMoleyGame : PvpGame() {
 
     companion object {
 
-        var spawnPosition = Pos(0.5, 60.0, 0.5)
+        var spawnPosition = Pos(25.5, 60.0, 25.5)
     }
 
     override fun getSpawnPosition(player: Player, spectator: Boolean): Pos = spawnPosition
@@ -87,7 +88,7 @@ class HoleyMoleyGame : PvpGame() {
         val eventNode = instance!!.eventNode()
 
         eventNode.listenOnly<FinalDamageEvent> {
-            if (damageType == CustomDamageType.FALL && gameState != GameState.PLAYING) isCancelled = true
+            if (gameState != GameState.PLAYING) isCancelled = true
         }
 
         eventNode.listenOnly<FinalAttackEvent> {
@@ -350,8 +351,8 @@ class HoleyMoleyGame : PvpGame() {
         // Handles instant block breaking
         val breakableBlocks = listOf<Block>(
             Block.DIRT,
-
         ) + SphereUtil.rainbowBlocks
+
         eventNode.listenOnly<PlayerStartDiggingEvent> {
             if (player.inventory.itemInMainHand.material() == Material.STONE_SHOVEL && breakableBlocks.contains(block) && player.isOnGround) {
                 if (shovelBreakRadius == 1) {
@@ -399,6 +400,31 @@ class HoleyMoleyGame : PvpGame() {
                 return@listenOnly
             }
             blocksPlacedByPlayer.add(blockPosition)
+        }
+
+        eventNode.listenOnly<ItemDropEvent> {
+            if (itemStack.material() == Material.STONE_SHOVEL) {
+                isCancelled = true
+                return@listenOnly
+            }
+            val itemEntity = ItemEntity(itemStack)
+            itemEntity.setPickupDelay(40, TimeUnit.SERVER_TICK)
+            val velocity = player.position.direction().mul(6.0)
+            itemEntity.velocity = velocity
+            itemEntity.scheduleRemove(Duration.ofMinutes(3))
+            itemEntity.setInstance(player.instance!!, player.position.add(0.0, 1.5, 0.0))
+        }
+
+        eventNode.listenOnly<PickupItemEvent> {
+            val player = entity as? Player ?: return@listenOnly
+
+            if (player.gameMode != GameMode.SURVIVAL) {
+                isCancelled = true
+                return@listenOnly
+            }
+
+            val couldAdd = player.inventory.addItemStack(itemStack)
+            isCancelled = !couldAdd
         }
 
         eventNode.listenOnly<PlayerBlockBreakEvent> {
