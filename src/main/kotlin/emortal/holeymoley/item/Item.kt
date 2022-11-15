@@ -44,15 +44,15 @@ class Item(val material: Material, val rarity: Rarity, val itemCreate: (ItemStac
             Item(Material.COOKED_BEEF, Rarity.UNCOMMON) { it.amount(ThreadLocalRandom.current().nextInt(2, 3)) }
         )
 
-        fun randomItem(): Item {
+        fun randomItem(luck: Int): Item {
             val possibleItems = items.filter { it.rarity != Rarity.IMPOSSIBLE }
-            val totalWeight = possibleItems.sumOf { it.rarity.weight }
+            val totalWeight = possibleItems.sumOf { it.rarity.findWeight(luck) }
 
             var idx = 0
 
             var r = ThreadLocalRandom.current().nextInt(totalWeight)
             while (idx < possibleItems.size - 1) {
-                r -= possibleItems[idx].rarity.weight
+                r -= possibleItems[idx].rarity.findWeight(luck)
                 if (r <= 0.0) break
                 ++idx
             }

@@ -8,7 +8,7 @@ object ChestRefill : Event("Chest Refill") {
         game.uncoveredChests.forEach {
             val inv = (it.handler() as SingleChestHandler).inventory
             inv.clear()
-            game.addRandomChestItems(inv)
+            game.addChestLoot(inv, 7, 0)
         }
     }
 }

@@ -5,6 +5,7 @@ import dev.emortal.immortal.game.PvpGame
 import dev.emortal.immortal.util.MinestomRunnable
 import dev.emortal.immortal.util.reset
 import emortal.holeymoley.blocks.SingleChestHandler
+import emortal.holeymoley.blocks.SuperChestHandler
 import emortal.holeymoley.event.Event
 import emortal.holeymoley.item.Item
 import emortal.holeymoley.item.Item.Companion.randomItem
@@ -72,11 +73,18 @@ class HoleyMoleyGame : PvpGame() {
     companion object {
 
         var spawnPosition = Pos(25.5, 60.0, 25.5)
+
+        var mapSize = 52
+
     }
 
     override fun getSpawnPosition(player: Player, spectator: Boolean): Pos = spawnPosition
 
     var uncoveredChests: MutableSet<Block> = ConcurrentHashMap.newKeySet()
+
+    var superChest: Point? = null
+    var previousSuperChestBlock: Block? = null
+
     val blocksPlacedByPlayer: MutableSet<Point> = ConcurrentHashMap.newKeySet()
 
     // events
@@ -387,6 +395,10 @@ class HoleyMoleyGame : PvpGame() {
                 val inventory = (block.handler() as SingleChestHandler).inventory
                 player.openInventory(inventory)
                 instance.playSound(Sound.sound(SoundEvent.BLOCK_CHEST_OPEN, Sound.Source.BLOCK, 1f, 1f), blockPosition)
+            } else if (block.compare(Block.ENDER_CHEST)) {
+                val inventory = (block.handler() as SuperChestHandler).inventory
+                player.openInventory(inventory)
+                instance.playSound(Sound.sound(SoundEvent.BLOCK_ENDER_CHEST_OPEN, Sound.Source.BLOCK, 1f, 1f), blockPosition)
             }
         }
 
@@ -469,7 +481,7 @@ class HoleyMoleyGame : PvpGame() {
                     val singleChest = SingleChestHandler.create()
                     val handler = singleChest.handler() as SingleChestHandler
 
-                    addRandomChestItems(handler.inventory)
+                    addChestLoot(handler.inventory, 7, 0)
 
                     isCancelled = true
                     instance.setBlock(blockPosition, singleChest)
@@ -480,10 +492,10 @@ class HoleyMoleyGame : PvpGame() {
         }
     }
 
-    fun addRandomChestItems(inventory: Inventory) {
+    fun addChestLoot(inventory: Inventory, items: Int, luck: Int) {
         val alreadyHadItems = mutableSetOf<Item>()
-        for (i in 0..7) {
-            val newItem = randomItem()
+        for (i in 0..items) {
+            val newItem = randomItem(luck)
             if (alreadyHadItems.contains(newItem)) continue
             alreadyHadItems.add(newItem)
 
@@ -492,7 +504,7 @@ class HoleyMoleyGame : PvpGame() {
     }
 
     override fun instanceCreate(): CompletableFuture<Instance> {
-        return CompletableFuture.completedFuture(MapCreator.create(52))
+        return CompletableFuture.completedFuture(MapCreator.create(mapSize))
     }
 
 }
