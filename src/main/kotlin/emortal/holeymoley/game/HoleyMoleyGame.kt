@@ -84,6 +84,7 @@ class HoleyMoleyGame : PvpGame() {
 
     var superChest: Point? = null
     var previousSuperChestBlock: Block? = null
+    var superChestIndicator: Entity? = null
 
     val blocksPlacedByPlayer: MutableSet<Point> = ConcurrentHashMap.newKeySet()
 
@@ -440,6 +441,11 @@ class HoleyMoleyGame : PvpGame() {
         }
 
         eventNode.listenOnly<PlayerBlockBreakEvent> {
+            if (superChestIndicator != null && superChest != null && superChest!!.distanceSquared(blockPosition) <= 2) { // Change to 1 for strictly bordering blocks
+                superChestIndicator!!.remove()
+                superChestIndicator = null
+            }
+
             if (block == Block.BEDROCK) {
                 isCancelled = true
                 return@listenOnly

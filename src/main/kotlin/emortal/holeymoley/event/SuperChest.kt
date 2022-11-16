@@ -5,6 +5,8 @@ import emortal.holeymoley.game.HoleyMoleyGame
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
 import net.minestom.server.coordinate.Vec
+import net.minestom.server.entity.Entity
+import net.minestom.server.entity.EntityType
 import net.minestom.server.instance.block.Block
 import java.util.concurrent.ThreadLocalRandom
 
@@ -23,6 +25,9 @@ object SuperChest : Event("Super Chest") {
         if (game.superChest != null) {
             game.instance?.setBlock(game.superChest!!, game.previousSuperChestBlock!!)
         }
+        if (game.superChestIndicator != null) {
+            game.superChestIndicator!!.remove()
+        }
 
         val block = SuperChestHandler.create()
         game.addChestLoot((block.handler() as SuperChestHandler).inventory, 16, 9)
@@ -30,6 +35,13 @@ object SuperChest : Event("Super Chest") {
         game.superChest = pos
         game.previousSuperChestBlock = game.instance?.getBlock(pos)
         game.instance?.setBlock(pos, block)
+
+        val entity = Entity(EntityType.SHULKER)
+        entity.isInvisible = true
+        entity.isGlowing = true
+        entity.setNoGravity(true)
+        game.instance?.let { entity.setInstance(it, pos) }
+        game.superChestIndicator = entity
 
         game.sendMessage(
             Component.text()
