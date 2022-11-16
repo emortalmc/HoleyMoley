@@ -364,15 +364,15 @@ class HoleyMoleyGame : PvpGame() {
 
         eventNode.listenOnly<PlayerStartDiggingEvent> {
             if (player.inventory.itemInMainHand.material() == Material.STONE_SHOVEL && breakableBlocks.contains(block) && player.isOnGround) {
-                if (shovelBreakRadius == 1) {
-                    instance.breakBlock(player, blockPosition)
-                } else {
-                    for (x in -1..1) {
-                        for (y in -1..1) {
-                            for (z in -1..1) {
+                if (shovelBreakRadius % 2 == 1) {
+                    val rad = (shovelBreakRadius - 1) / 2
+                    for (x in -rad..rad) {
+                        for (y in -rad..rad) {
+                            for (z in -rad..rad) {
                                 val pos = blockPosition.add(x.toDouble(), y.toDouble(), z.toDouble())
-                                if (instance.getBlock(pos).compare(Block.CHEST)) continue
-                                instance.breakBlock(player, pos)
+                                if (breakableBlocks.contains(instance.getBlock(pos))) {
+                                    instance.breakBlock(player, pos)
+                                }
                             }
                         }
                     }
