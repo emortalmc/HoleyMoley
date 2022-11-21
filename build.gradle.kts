@@ -1,7 +1,7 @@
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
-    id("org.jetbrains.kotlin.jvm") version "1.7.20"
+    id("org.jetbrains.kotlin.jvm") version "1.7.21"
     id("com.github.johnrengelman.shadow") version "7.1.2"
 
     java
@@ -14,8 +14,8 @@ repositories {
 }
 
 dependencies {
-    compileOnly("com.github.Minestom:Minestom:42195c536b")
-    compileOnly("com.github.EmortalMC:Immortal:5b2b3a057a")
+    compileOnly("com.github.Minestom:Minestom:1a013728fd")
+    compileOnly("com.github.EmortalMC:Immortal:27425f94df")
     implementation("io.github.bloepiloepi:MinestomPvP:1.0")
 
     compileOnly("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.4")

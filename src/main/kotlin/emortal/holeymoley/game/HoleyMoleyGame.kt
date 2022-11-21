@@ -112,6 +112,10 @@ class HoleyMoleyGame : PvpGame() {
         player.cleanup()
     }
 
+    override fun spectatorJoin(player: Player) {
+        player.addEffect(Potion(PotionEffect.NIGHT_VISION, 0, 32767))
+    }
+
     override fun gameStarted() {
 
         scoreboard?.createLine(

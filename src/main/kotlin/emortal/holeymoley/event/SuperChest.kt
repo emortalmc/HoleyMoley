@@ -7,13 +7,10 @@ import net.kyori.adventure.text.format.NamedTextColor
 import net.minestom.server.coordinate.Vec
 import net.minestom.server.entity.Entity
 import net.minestom.server.entity.EntityType
-import net.minestom.server.instance.block.Block
 import java.util.concurrent.ThreadLocalRandom
 
 object SuperChest : Event("Super Chest") {
     override fun performEvent(game: HoleyMoleyGame) {
-        game.instance?.setBlock(0, 0, 0, Block.DIAMOND_BLOCK)
-
         val rng = ThreadLocalRandom.current()
 
         val pos = Vec(

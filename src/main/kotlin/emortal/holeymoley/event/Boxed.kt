@@ -1,5 +1,5 @@
 package emortal.holeymoley.event
-
+/*
 import emortal.holeymoley.game.HoleyMoleyGame
 import emortal.holeymoley.util.SphereUtil
 import net.minestom.server.entity.GameMode
@@ -22,3 +22,4 @@ object Boxed : Event("Boxed") {
     }
 
 }
+*/
