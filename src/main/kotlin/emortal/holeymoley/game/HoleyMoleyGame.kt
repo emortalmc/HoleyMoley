@@ -64,7 +64,7 @@ class HoleyMoleyGame : PvpGame() {
 
     override val maxPlayers: Int = 15
     override val minPlayers: Int = 2
-    override val countdownSeconds: Int = 15
+    override val countdownSeconds: Int = 30
     override val canJoinDuringGame: Boolean = false
     override val showScoreboard: Boolean = false
     override val showsJoinLeaveMessages: Boolean = true
@@ -456,7 +456,7 @@ class HoleyMoleyGame : PvpGame() {
             }
             if (block.compare(Block.CHEST)) return@listenOnly
 
-            if (player.inventory.count(Material.DIRT) < 64) {
+            if (block.compare(Block.DIRT) && player.inventory.count(Material.DIRT) < 64) {
                 player.playSound(
                     Sound.sound(SoundEvent.ENTITY_ITEM_PICKUP, Sound.Source.PLAYER, 0.25f, 1f),
                     player.position
