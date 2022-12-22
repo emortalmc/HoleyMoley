@@ -15,7 +15,7 @@ repositories {
 
 dependencies {
     compileOnly("com.github.Minestom:Minestom:d7feed23c8")
-    compileOnly("com.github.EmortalMC:Immortal:fa216c68ae")
+    compileOnly("com.github.EmortalMC:Immortal:2.0.0")
     implementation("io.github.bloepiloepi:MinestomPvP:1.0")
 }
 
